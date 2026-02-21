@@ -10,3 +10,9 @@ data class AgentResponse(
     val description: String,
     @field:Json(name = "icon_url") val iconUrl: String? = null
 )
+
+@JsonClass(generateAdapter = true)
+data class ChatRequest(
+    @field:Json(name = "agent_id") val agentId: String,
+    val message: String
+)

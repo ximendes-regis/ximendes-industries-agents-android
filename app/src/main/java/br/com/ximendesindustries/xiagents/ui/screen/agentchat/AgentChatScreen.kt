@@ -21,6 +21,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -30,6 +32,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -43,8 +47,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import br.com.ximendesindustries.xiagents.domain.model.ChatSession
 import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
@@ -59,6 +63,7 @@ fun AgentChatScreen(
         uiState = uiState,
         onBackClick = onBackClick,
         onSendMessage = viewModel::sendMessage,
+        onSelectSession = viewModel::selectSession,
         modifier = modifier
     )
 }
@@ -69,6 +74,7 @@ fun AgentChatContent(
     uiState: AgentChatUiState,
     onBackClick: () -> Unit,
     onSendMessage: (String) -> Unit,
+    onSelectSession: (ChatSession?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var messageText by remember { mutableStateOf("") }
@@ -131,21 +137,37 @@ fun AgentChatContent(
                     Column(
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        // Messages List
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(uiState.messages) { message ->
-                                ChatMessageItem(message = message)
+                        SessionSelectorBar(
+                            selectedSession = uiState.selectedSession,
+                            sessions = uiState.sessions,
+                            onSelectSession = onSelectSession
+                        )
+                        if (uiState.isLoadingSessionDetail) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth(),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(uiState.messages) { message ->
+                                    ChatMessageItem(message = message)
+                                }
                             }
                         }
 
-                        // Input Area
                         ChatInputArea(
                             value = messageText,
                             onValueChange = { messageText = it },
@@ -158,6 +180,73 @@ fun AgentChatContent(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun SessionSelectorBar(
+    selectedSession: ChatSession?,
+    sessions: List<ChatSession>,
+    onSelectSession: (ChatSession?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    val displayTitle = selectedSession?.title ?: "Nova conversa"
+
+    Box(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Email,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.size(8.dp))
+            Text(
+                text = displayTitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(
+                onClick = { menuExpanded = true },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = "Escolher conversa"
+                )
+            }
+        }
+        DropdownMenu(
+            expanded = menuExpanded,
+            onDismissRequest = { menuExpanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("Nova conversa") },
+                onClick = {
+                    onSelectSession(null)
+                    menuExpanded = false
+                }
+            )
+            sessions.forEach { session ->
+                DropdownMenuItem(
+                    text = { Text(session.title) },
+                    onClick = {
+                        onSelectSession(session)
+                        menuExpanded = false
+                    }
+                )
             }
         }
     }
