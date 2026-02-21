@@ -1,6 +1,5 @@
 package br.com.ximendesindustries.xiagents.ui.screen.agentsmenu
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,14 +31,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import br.com.ximendesindustries.xiagents.ui.theme.XiAgentsTheme
+import br.com.ximendesindustries.xiagents.ui.theme.audioWide
+import br.com.ximendesindustries.xiagents.ui.theme.mostWastedFont
 
 @Composable
 fun AgentsMenuScreen(
@@ -63,18 +64,30 @@ fun AgentsMenuContent(
     onAgentClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+
     Scaffold(
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = { Text("Agentes Disponíveis") },
+                title = {
+                    Row {
+                        Text("Ximendes", fontFamily = audioWide)
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(
+                            "Industries",
+                            fontFamily = mostWastedFont,
+                            fontSize = 24.sp
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.primary
                 )
             )
         },
-        containerColor = MaterialTheme.colorScheme.background,
-        modifier = modifier
+        containerColor = MaterialTheme.colorScheme.surface,
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -114,68 +127,6 @@ fun AgentsMenuContent(
     }
 }
 
-@Composable
-fun AgentCard(
-    agent: Agent,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        onClick = onClick,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Icon Placeholder
-            Box(
-                modifier = Modifier
-                    .size(48.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-            
-            Spacer(modifier = Modifier.size(16.dp))
-            
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = agent.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = agent.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "Ir para agente",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
 
 @Preview
 @Composable

@@ -44,7 +44,7 @@ class AgentChatViewModel @Inject constructor(
 
     init {
         _uiState.value = AgentChatUiState.Success(
-            agentName = "Agente $agentId",
+            agentName = agentId,
             messages = emptyList(),
             sessions = _sessions.toList(),
             selectedSession = null

@@ -48,8 +48,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import br.com.ximendesindustries.xiagents.domain.model.ChatSession
 import androidx.hilt.navigation.compose.hiltViewModel
+import br.com.ximendesindustries.xiagents.ui.theme.audioWide
+import br.com.ximendesindustries.xiagents.ui.theme.mostWastedFont
 
 @Composable
 fun AgentChatScreen(
@@ -90,11 +93,12 @@ fun AgentChatContent(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Text(
                         text = if (uiState is AgentChatUiState.Success) uiState.agentName else "Chat",
-                        style = MaterialTheme.typography.titleMedium
-                    ) 
+                        fontFamily = mostWastedFont,
+                        fontSize = 32.sp
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
@@ -107,12 +111,11 @@ fun AgentChatContent(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.primary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                    navigationIconContentColor = MaterialTheme.colorScheme.secondary
                 )
             )
         },
-        containerColor = MaterialTheme.colorScheme.background,
-        modifier = modifier.imePadding() // Ajusta para o teclado
+        containerColor = MaterialTheme.colorScheme.surface,
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -181,149 +184,6 @@ fun AgentChatContent(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun SessionSelectorBar(
-    selectedSession: ChatSession?,
-    sessions: List<ChatSession>,
-    onSelectSession: (ChatSession?) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var menuExpanded by remember { mutableStateOf(false) }
-    val displayTitle = selectedSession?.title ?: "Nova conversa"
-
-    Box(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Email,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.size(8.dp))
-            Text(
-                text = displayTitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(
-                onClick = { menuExpanded = true },
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowDropDown,
-                    contentDescription = "Escolher conversa"
-                )
-            }
-        }
-        DropdownMenu(
-            expanded = menuExpanded,
-            onDismissRequest = { menuExpanded = false }
-        ) {
-            DropdownMenuItem(
-                text = { Text("Nova conversa") },
-                onClick = {
-                    onSelectSession(null)
-                    menuExpanded = false
-                }
-            )
-            sessions.forEach { session ->
-                DropdownMenuItem(
-                    text = { Text(session.title) },
-                    onClick = {
-                        onSelectSession(session)
-                        menuExpanded = false
-                    }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ChatMessageItem(message: ChatMessage) {
-    val isUser = message.isFromUser
-    val alignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart
-    val backgroundColor = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
-    val contentColor = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-    val shape = if (isUser) {
-        RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomEnd = 16.dp, bottomStart = 16.dp)
-    } else {
-        RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 16.dp)
-    }
-
-    Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = alignment
-    ) {
-        Column(
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .clip(shape)
-                .background(backgroundColor)
-                .padding(12.dp)
-        ) {
-            Text(
-                text = message.content,
-                color = contentColor,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-    }
-}
-
-@Composable
-fun ChatInputArea(
-    value: String,
-    onValueChange: (String) -> Unit,
-    onSendClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        TextField(
-            value = value,
-            onValueChange = onValueChange,
-            placeholder = { Text("Digite sua mensagem...") },
-            modifier = Modifier
-                .weight(1f)
-                .clip(RoundedCornerShape(24.dp)),
-            colors = TextFieldDefaults.colors(
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                disabledIndicatorColor = Color.Transparent
-            ),
-            maxLines = 3
-        )
-        
-        Spacer(modifier = Modifier.size(8.dp))
-        
-        IconButton(
-            onClick = onSendClick,
-            modifier = Modifier
-                .size(48.dp)
-                .background(MaterialTheme.colorScheme.primary, CircleShape)
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.Send,
-                contentDescription = "Enviar",
-                tint = MaterialTheme.colorScheme.onPrimary
-            )
         }
     }
 }
