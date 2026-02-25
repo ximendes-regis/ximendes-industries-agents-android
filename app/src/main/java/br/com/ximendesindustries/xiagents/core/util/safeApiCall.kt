@@ -4,6 +4,18 @@ import android.util.Log
 import com.squareup.moshi.JsonDataException
 import com.squareup.moshi.JsonEncodingException
 
+private fun safeLogError(tag: String, message: String, throwable: Throwable? = null) {
+    try {
+        if (throwable != null) {
+            Log.e(tag, message, throwable)
+        } else {
+            Log.e(tag, message)
+        }
+    } catch (_: Exception) {
+        // Log não disponível em testes unitários (JVM)
+    }
+}
+
 suspend fun <T> safeApiCall(
     apiCall: suspend () -> T
 ): Result<T> {
@@ -18,23 +30,19 @@ suspend fun <T> safeApiCall(
                 val code = e.code()
                 val message = e.message()
                 val responseBody = e.response()?.errorBody()?.string()
-                Log.e("SafeApiCall", "HTTP Error $code: $message\nResponse: $responseBody")
+                safeLogError("SafeApiCall", "HTTP Error $code: $message\nResponse: $responseBody")
                 "Erro HTTP $code: ${message ?: "Erro desconhecido"}"
             }
             is JsonDataException -> {
-                Log.e("SafeApiCall", "JSON Parsing Error: ${e.message}", e)
+                safeLogError("SafeApiCall", "JSON Parsing Error: ${e.message}", e)
                 "Erro ao processar resposta do servidor: ${e.message ?: "Formato de dados inválido"}"
             }
             is JsonEncodingException -> {
-                Log.e("SafeApiCall", "JSON Encoding Error: ${e.message}", e)
-                "Erro ao processar resposta do servidor: ${e.message ?: "Formato de dados inválido"}"
-            }
-            is com.squareup.moshi.JsonEncodingException -> {
-                Log.e("SafeApiCall", "Moshi JSON Error: ${e.message}", e)
+                safeLogError("SafeApiCall", "JSON Encoding Error: ${e.message}", e)
                 "Erro ao processar resposta do servidor: ${e.message ?: "Formato de dados inválido"}"
             }
             else -> {
-                Log.e("SafeApiCall", "Unexpected Error: ${e.javaClass.simpleName}", e)
+                safeLogError("SafeApiCall", "Unexpected Error: ${e.javaClass.simpleName}", e)
                 e.localizedMessage ?: e.message ?: "Erro desconhecido: ${e.javaClass.simpleName}"
             }
         }
