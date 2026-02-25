@@ -1,28 +1,17 @@
 package br.com.ximendesindustries.xiagents.ui.screen.agentchat
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -30,29 +19,25 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import br.com.ximendesindustries.xiagents.domain.model.ChatSession
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.ximendesindustries.xiagents.core.model.RequestUIState
 import br.com.ximendesindustries.xiagents.core.util.isPixelAgent
-import br.com.ximendesindustries.xiagents.ui.theme.audioWide
+import br.com.ximendesindustries.xiagents.domain.model.ChatSession
+import br.com.ximendesindustries.xiagents.ui.screen.agentchat.model.AgentChatViewModelAction
 import br.com.ximendesindustries.xiagents.ui.theme.mostWastedFont
 
 @Composable
@@ -61,13 +46,17 @@ fun AgentChatScreen(
     modifier: Modifier = Modifier,
     viewModel: AgentChatViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.performAction(AgentChatViewModelAction.StartAction)
+    }
 
     AgentChatContent(
         uiState = uiState,
         onBackClick = onBackClick,
-        onSendMessage = viewModel::sendMessage,
-        onSelectSession = viewModel::selectSession,
+        onSendMessage = { viewModel.performAction(AgentChatViewModelAction.SendMessageAction(it)) },
+        onSelectSession = { viewModel.performAction(AgentChatViewModelAction.SelectSessionAction(it)) },
         modifier = modifier
     )
 }
@@ -84,19 +73,21 @@ fun AgentChatContent(
     var messageText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
 
-    // Scroll to bottom when new messages arrive
-    LaunchedEffect(uiState) {
-        if (uiState is AgentChatUiState.Success && uiState.messages.isNotEmpty()) {
+    LaunchedEffect(uiState.messages) {
+        if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.lastIndex)
         }
     }
 
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+
     Scaffold(
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = if (uiState is AgentChatUiState.Success) uiState.agentName else "Chat",
+                        text = uiState.agentName.ifBlank { "Chat" },
                         fontFamily = mostWastedFont,
                         fontSize = 32.sp
                     )
@@ -123,23 +114,23 @@ fun AgentChatContent(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when (uiState) {
-                is AgentChatUiState.Loading -> {
+            when (uiState.requestUIState) {
+                RequestUIState.Loading -> {
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center),
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
 
-                is AgentChatUiState.Error -> {
+                RequestUIState.Error -> {
                     Text(
-                        text = uiState.message,
+                        text = uiState.errorMessage.ifBlank { "Algo de errado ocorreu" },
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
 
-                is AgentChatUiState.Success -> {
+                RequestUIState.Success -> {
                     Column(
                         modifier = Modifier.fillMaxSize()
                     ) {

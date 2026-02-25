@@ -93,7 +93,7 @@ fun AgentsMenuContent(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when (uiState) {
+            when (uiState.requestUIState) {
                 RequestUIState.Loading -> {
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center),

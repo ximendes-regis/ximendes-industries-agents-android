@@ -9,7 +9,7 @@ import javax.inject.Inject
 class GetAgentsUseCase @Inject constructor(
     private val repository: AgentsRepository
 ) {
-    operator fun invoke(): Flow<Result<List<Agent>>> {
+   suspend operator fun invoke(): Flow<Result<List<Agent>>> {
         return repository.getAgents()
     }
 }

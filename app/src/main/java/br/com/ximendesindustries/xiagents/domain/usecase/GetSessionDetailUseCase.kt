@@ -9,6 +9,6 @@ import javax.inject.Inject
 class GetSessionDetailUseCase @Inject constructor(
     private val repository: AgentsRepository
 ) {
-    operator fun invoke(sessionId: String): Flow<Result<SessionDetail>> =
+    suspend operator fun invoke(sessionId: String): Flow<Result<SessionDetail>> =
         repository.getSessionDetail(sessionId)
 }

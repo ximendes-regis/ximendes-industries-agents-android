@@ -9,7 +9,7 @@ import javax.inject.Inject
 class SendMessageUseCase @Inject constructor(
     private val repository: AgentsRepository
 ) {
-    operator fun invoke(agentId: String, sessionId: String?, message: String): Flow<Result<AgentMessage>> {
+    suspend operator fun invoke(agentId: String, sessionId: String?, message: String): Flow<Result<AgentMessage>> {
         return repository.sendMessage(agentId, sessionId, message)
     }
 }

@@ -3,6 +3,7 @@ package br.com.ximendesindustries.xiagents.ui.screen.agentchat
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.ximendesindustries.xiagents.core.model.RequestUIState
 import br.com.ximendesindustries.xiagents.core.util.Result
 import br.com.ximendesindustries.xiagents.core.util.isPixelAgent
 import br.com.ximendesindustries.xiagents.domain.model.ChatSession
@@ -10,10 +11,12 @@ import br.com.ximendesindustries.xiagents.domain.model.SessionDetail
 import br.com.ximendesindustries.xiagents.domain.usecase.GetSessionDetailUseCase
 import br.com.ximendesindustries.xiagents.domain.usecase.GetSessionsUseCase
 import br.com.ximendesindustries.xiagents.domain.usecase.SendMessageUseCase
+import br.com.ximendesindustries.xiagents.ui.screen.agentchat.model.AgentChatViewModelAction
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
@@ -28,108 +31,120 @@ class AgentChatViewModel @Inject constructor(
 
     private val agentId: String = checkNotNull(savedStateHandle["agentId"])
 
-    private val _uiState = MutableStateFlow<AgentChatUiState>(AgentChatUiState.Loading)
+    private val _uiState = MutableStateFlow(AgentChatUiState())
     val uiState: StateFlow<AgentChatUiState> = _uiState.asStateFlow()
 
-    /** Sessões da API + novas criadas localmente nesta tela (nova conversa + envio). */
-    private val _sessions = mutableListOf<ChatSession>()
+    fun performAction(action: AgentChatViewModelAction) {
+        when (action) {
+            AgentChatViewModelAction.StartAction -> start()
+            is AgentChatViewModelAction.SendMessageAction -> sendMessage(action.content)
+            is AgentChatViewModelAction.SelectSessionAction -> selectSession(action.session)
+        }
+    }
 
-    /** Mensagens por sessão: sessionId -> mensagens. "nova conversa" usa lista em _messages. */
-    private val _messagesBySession = mutableMapOf<String, MutableList<ChatMessage>>()
-
-    /** Mensagens da conversa atual (nova conversa ou sessão selecionada). */
-    private val _messages = mutableListOf<ChatMessage>()
-
-    /** ID da sessão selecionada; null = nova conversa. */
-    private var selectedSessionId: String? = null
-
-    init {
-        _uiState.value = AgentChatUiState.Success(
-            agentName = agentId,
-            messages = emptyList(),
-            sessions = _sessions.toList(),
-            selectedSession = null
-        )
-        addWelcomeMessage()
-
+    private fun start() {
+        val welcome = createWelcomeMessage()
+        _uiState.update {
+            it.copy(
+                requestUIState = RequestUIState.Success,
+                agentName = agentId,
+                messages = listOf(welcome),
+                sessions = emptyList(),
+                selectedSession = null,
+                messagesBySession = emptyMap()
+            )
+        }
         if (agentId.isPixelAgent()) loadSessions()
     }
+
+    private fun createWelcomeMessage() = ChatMessage(
+        id = UUID.randomUUID().toString(),
+        content = "Olá Sr. Ximendes",
+        isFromUser = false
+    )
 
     private fun loadSessions() {
         viewModelScope.launch {
             getSessionsUseCase(agentId).collect { result ->
                 when (result) {
                     is Result.Success -> {
+                        val current = _uiState.value
                         val apiIds = result.data.map { it.id }.toSet()
-                        val localOnly = _sessions.filter { it.id !in apiIds }
-                        _sessions.clear()
-                        _sessions.addAll(result.data)
-                        _sessions.addAll(0, localOnly)
-                        emitSuccess()
+                        val localOnly = current.sessions.filter { it.id !in apiIds }
+                        val newSessions = result.data + localOnly
+                        _uiState.update { it.copy(sessions = newSessions) }
                     }
-
-                    is Result.Loading, is Result.Error -> { /* opcional: tratar erro/loading */
-                    }
+                    is Result.Loading, is Result.Error -> { }
                 }
             }
         }
     }
 
-    private fun addWelcomeMessage() {
-        addMessage(
-            ChatMessage(
-                id = UUID.randomUUID().toString(),
-                content = "Olá! Como posso ajudar você hoje?",
-                isFromUser = false
-            )
-        )
-    }
-
-    /** Seleciona uma sessão (null = nova conversa). Se for sessão da API, carrega a conversa. */
-    fun selectSession(session: ChatSession?) {
-        selectedSessionId?.let { id ->
-            _messagesBySession.getOrPut(id) { mutableListOf() }.clear()
-            _messagesBySession[id]!!.addAll(_messages)
+    private fun selectSession(session: ChatSession?) {
+        val current = _uiState.value
+        val newMap = if (current.selectedSession != null) {
+            current.messagesBySession + (current.selectedSession.id to current.messages)
+        } else {
+            current.messagesBySession
         }
-        _messages.clear()
-        selectedSessionId = session?.id
-        if (session != null) {
-            val cached = _messagesBySession[session.id].orEmpty()
-            if (cached.isNotEmpty()) {
-                _messages.addAll(cached)
-                emitSuccess()
-            } else {
-                loadSessionDetail(session.id)
+
+        if (session == null) {
+            _uiState.update {
+                it.copy(
+                    messagesBySession = newMap,
+                    selectedSession = null,
+                    messages = listOf(createWelcomeMessage())
+                )
+            }
+            return
+        }
+
+        val cached = newMap[session.id].orEmpty()
+        if (cached.isNotEmpty()) {
+            _uiState.update {
+                it.copy(
+                    messagesBySession = newMap,
+                    selectedSession = session,
+                    messages = cached
+                )
             }
         } else {
-            addWelcomeMessage()
-            emitSuccess()
+            _uiState.update {
+                it.copy(
+                    messagesBySession = newMap,
+                    selectedSession = session,
+                    messages = emptyList(),
+                    isLoadingSessionDetail = true
+                )
+            }
+            loadSessionDetail(session.id)
         }
     }
 
     private fun loadSessionDetail(sessionId: String) {
-        setLoadingSessionDetail(true)
         viewModelScope.launch {
             getSessionDetailUseCase(sessionId).collect { result ->
                 when (result) {
                     is Result.Success -> {
-                        val messages = sessionDetailToMessages(result.data)
-                        _messages.clear()
-                        _messages.addAll(messages)
-                        _messagesBySession[sessionId] = _messages.toMutableList()
-                        if (_messages.isEmpty()) addWelcomeMessage()
-                        setLoadingSessionDetail(false)
-                        emitSuccess()
+                        var messages = sessionDetailToMessages(result.data)
+                        if (messages.isEmpty()) messages = listOf(createWelcomeMessage())
+                        _uiState.update {
+                            it.copy(
+                                messages = messages,
+                                messagesBySession = it.messagesBySession + (sessionId to messages),
+                                isLoadingSessionDetail = false
+                            )
+                        }
                     }
-
                     is Result.Error -> {
-                        addWelcomeMessage()
-                        setLoadingSessionDetail(false)
-                        emitSuccess()
+                        _uiState.update {
+                            it.copy(
+                                messages = listOf(createWelcomeMessage()),
+                                isLoadingSessionDetail = false
+                            )
+                        }
                     }
-
-                    is Result.Loading -> { /* mantém loading */
-                    }
+                    is Result.Loading -> { }
                 }
             }
         }
@@ -153,99 +168,70 @@ class AgentChatViewModel @Inject constructor(
             )
         }
 
-    private fun setLoadingSessionDetail(loading: Boolean) {
-        val current = _uiState.value
-        if (current is AgentChatUiState.Success) {
-            _uiState.value = current.copy(isLoadingSessionDetail = loading)
-        }
-    }
-
-    private fun emitSuccess() {
-        val current = _uiState.value
-        if (current is AgentChatUiState.Success) {
-            _uiState.value = current.copy(
-                messages = _messages.toList(),
-                sessions = _sessions.toList(),
-                selectedSession = _sessions.find { it.id == selectedSessionId },
-                isLoadingSessionDetail = current.isLoadingSessionDetail
-            )
-        }
-    }
-
-    /**
-     * Aplica o sessionId retornado pela API como nova sessão selecionada (fluxo: enviou sem session → backend devolve session_id).
-     */
-    private fun selectSessionFromResponse(sessionId: String, firstMessageTitle: String) {
-        if (_sessions.any { it.id == sessionId }) {
-            selectedSessionId = sessionId
-            _messagesBySession[sessionId] = _messages.toMutableList()
-        } else {
-            val title = firstMessageTitle.take(30).let { if (it.length == 30) "$it..." else it }
-                .ifBlank { "Nova conversa" }
-            val newSession = ChatSession(
-                id = sessionId,
-                agentId = agentId,
-                title = title
-            )
-            _sessions.add(0, newSession)
-            selectedSessionId = sessionId
-            _messagesBySession[sessionId] = _messages.toMutableList()
-        }
-    }
-
-    fun sendMessage(content: String) {
+    private fun sendMessage(content: String) {
         if (content.isBlank()) return
 
-        val currentState = _uiState.value
-        if (currentState is AgentChatUiState.Success) {
-            viewModelScope.launch {
-                val userMsg = ChatMessage(
-                    id = UUID.randomUUID().toString(),
-                    content = content,
-                    isFromUser = true
-                )
-                addMessage(userMsg)
+        val userMsg = ChatMessage(
+            id = UUID.randomUUID().toString(),
+            content = content,
+            isFromUser = true
+        )
+        _uiState.update { it.copy(messages = it.messages + userMsg) }
 
-                val sessionIdToSend = selectedSessionId
-                sendMessageUseCase(agentId, sessionIdToSend, content).collect { result ->
-                    when (result) {
-                        is Result.Success -> {
-                            val agentResponse = result.data
-                            val agentMsg = ChatMessage(
-                                id = UUID.randomUUID().toString(),
-                                content = agentResponse.message,
-                                isFromUser = false
+        val sessionIdToSend = _uiState.value.selectedSession?.id
+
+        viewModelScope.launch {
+            sendMessageUseCase(agentId, sessionIdToSend, content).collect { result ->
+                val current = _uiState.value
+                when (result) {
+                    is Result.Success -> {
+                        val agentMsg = ChatMessage(
+                            id = UUID.randomUUID().toString(),
+                            content = result.data.message,
+                            isFromUser = false
+                        )
+                        val newMessages = current.messages + agentMsg
+
+                        if (sessionIdToSend == null && result.data.sessionId != null) {
+                            val sessionId = result.data.sessionId
+                            val title = content.take(30).let { if (it.length == 30) "$it..." else it }
+                                .ifBlank { "Nova conversa" }
+                            val newSession = ChatSession(
+                                id = sessionId,
+                                agentId = agentId,
+                                title = title
                             )
-                            addMessage(agentMsg)
-                            if (sessionIdToSend == null && agentResponse.sessionId != null) {
-                                val title =
-                                    content.take(30).let { if (it.length == 30) "$it..." else it }
-                                selectSessionFromResponse(
-                                    agentResponse.sessionId,
-                                    title.ifBlank { "Nova conversa" })
+                            _uiState.update {
+                                it.copy(
+                                    messages = newMessages,
+                                    sessions = listOf(newSession) + it.sessions,
+                                    selectedSession = newSession,
+                                    messagesBySession = it.messagesBySession + (sessionId to newMessages)
+                                )
                             }
-                            emitSuccess()
+                        } else {
+                            val sid = current.selectedSession?.id
+                            val newMap = if (sid != null) {
+                                current.messagesBySession + (sid to newMessages)
+                            } else {
+                                current.messagesBySession
+                            }
+                            _uiState.update {
+                                it.copy(messages = newMessages, messagesBySession = newMap)
+                            }
                         }
-
-                        is Result.Error -> {
-                            val errorMsg = ChatMessage(
-                                id = UUID.randomUUID().toString(),
-                                content = "Erro ao enviar mensagem: ${result.message}",
-                                isFromUser = false
-                            )
-                            addMessage(errorMsg)
-                            emitSuccess()
-                        }
-
-                        is Result.Loading -> {}
                     }
+                    is Result.Error -> {
+                        val errorMsg = ChatMessage(
+                            id = UUID.randomUUID().toString(),
+                            content = "Erro ao enviar mensagem: ${result.message}",
+                            isFromUser = false
+                        )
+                        _uiState.update { it.copy(messages = current.messages + errorMsg) }
+                    }
+                    is Result.Loading -> { }
                 }
             }
         }
-    }
-
-    private fun addMessage(message: ChatMessage) {
-        _messages.add(message)
-        emitSuccess()
     }
 }

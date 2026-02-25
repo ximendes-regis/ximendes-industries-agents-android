@@ -9,6 +9,6 @@ import javax.inject.Inject
 class GetSessionsUseCase @Inject constructor(
     private val repository: AgentsRepository
 ) {
-    operator fun invoke(agentId: String): Flow<Result<List<ChatSession>>> =
+    suspend operator fun invoke(agentId: String): Flow<Result<List<ChatSession>>> =
         repository.getSessions(agentId)
 }
