@@ -47,7 +47,7 @@ object NetworkModule {
         moshi: Moshi
     ): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://ximendes-industries-agents.onrender.com")
+            .baseUrl("your_base_url_here")
             .client(client)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
