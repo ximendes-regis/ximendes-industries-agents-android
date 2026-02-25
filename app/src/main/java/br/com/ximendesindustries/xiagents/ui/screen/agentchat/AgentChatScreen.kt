@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.ximendesindustries.xiagents.domain.model.ChatSession
 import androidx.hilt.navigation.compose.hiltViewModel
+import br.com.ximendesindustries.xiagents.core.util.isPixelAgent
 import br.com.ximendesindustries.xiagents.ui.theme.audioWide
 import br.com.ximendesindustries.xiagents.ui.theme.mostWastedFont
 
@@ -129,6 +130,7 @@ fun AgentChatContent(
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
+
                 is AgentChatUiState.Error -> {
                     Text(
                         text = uiState.message,
@@ -136,15 +138,19 @@ fun AgentChatContent(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
+
                 is AgentChatUiState.Success -> {
                     Column(
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        SessionSelectorBar(
-                            selectedSession = uiState.selectedSession,
-                            sessions = uiState.sessions,
-                            onSelectSession = onSelectSession
-                        )
+                        if (uiState.agentName.isPixelAgent()) {
+                            SessionSelectorBar(
+                                selectedSession = uiState.selectedSession,
+                                sessions = uiState.sessions,
+                                onSelectSession = onSelectSession
+                            )
+                        }
+
                         if (uiState.isLoadingSessionDetail) {
                             Box(
                                 modifier = Modifier

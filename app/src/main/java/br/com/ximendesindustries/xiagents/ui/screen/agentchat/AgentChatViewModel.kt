@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.ximendesindustries.xiagents.core.util.Result
+import br.com.ximendesindustries.xiagents.core.util.isPixelAgent
 import br.com.ximendesindustries.xiagents.domain.model.ChatSession
 import br.com.ximendesindustries.xiagents.domain.model.SessionDetail
 import br.com.ximendesindustries.xiagents.domain.usecase.GetSessionDetailUseCase
@@ -50,7 +51,8 @@ class AgentChatViewModel @Inject constructor(
             selectedSession = null
         )
         addWelcomeMessage()
-        loadSessions()
+
+        if (agentId.isPixelAgent()) loadSessions()
     }
 
     private fun loadSessions() {
@@ -65,7 +67,9 @@ class AgentChatViewModel @Inject constructor(
                         _sessions.addAll(0, localOnly)
                         emitSuccess()
                     }
-                    is Result.Loading, is Result.Error -> { /* opcional: tratar erro/loading */ }
+
+                    is Result.Loading, is Result.Error -> { /* opcional: tratar erro/loading */
+                    }
                 }
             }
         }
@@ -117,12 +121,15 @@ class AgentChatViewModel @Inject constructor(
                         setLoadingSessionDetail(false)
                         emitSuccess()
                     }
+
                     is Result.Error -> {
                         addWelcomeMessage()
                         setLoadingSessionDetail(false)
                         emitSuccess()
                     }
-                    is Result.Loading -> { /* mantém loading */ }
+
+                    is Result.Loading -> { /* mantém loading */
+                    }
                 }
             }
         }
@@ -173,7 +180,8 @@ class AgentChatViewModel @Inject constructor(
             selectedSessionId = sessionId
             _messagesBySession[sessionId] = _messages.toMutableList()
         } else {
-            val title = firstMessageTitle.take(30).let { if (it.length == 30) "$it..." else it }.ifBlank { "Nova conversa" }
+            val title = firstMessageTitle.take(30).let { if (it.length == 30) "$it..." else it }
+                .ifBlank { "Nova conversa" }
             val newSession = ChatSession(
                 id = sessionId,
                 agentId = agentId,
@@ -210,11 +218,15 @@ class AgentChatViewModel @Inject constructor(
                             )
                             addMessage(agentMsg)
                             if (sessionIdToSend == null && agentResponse.sessionId != null) {
-                                val title = content.take(30).let { if (it.length == 30) "$it..." else it }
-                                selectSessionFromResponse(agentResponse.sessionId, title.ifBlank { "Nova conversa" })
+                                val title =
+                                    content.take(30).let { if (it.length == 30) "$it..." else it }
+                                selectSessionFromResponse(
+                                    agentResponse.sessionId,
+                                    title.ifBlank { "Nova conversa" })
                             }
                             emitSuccess()
                         }
+
                         is Result.Error -> {
                             val errorMsg = ChatMessage(
                                 id = UUID.randomUUID().toString(),
@@ -224,7 +236,8 @@ class AgentChatViewModel @Inject constructor(
                             addMessage(errorMsg)
                             emitSuccess()
                         }
-                        is Result.Loading -> { }
+
+                        is Result.Loading -> {}
                     }
                 }
             }

@@ -2,12 +2,16 @@ package br.com.ximendesindustries.xiagents.ui.screen.agentsmenu
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.ximendesindustries.xiagents.core.model.RequestUIState
 import br.com.ximendesindustries.xiagents.core.util.Result
+import br.com.ximendesindustries.xiagents.domain.model.Agent
 import br.com.ximendesindustries.xiagents.domain.usecase.GetAgentsUseCase
+import br.com.ximendesindustries.xiagents.ui.screen.agentsmenu.model.AgentsMenuViewModelAction
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -16,10 +20,16 @@ class AgentsMenuViewModel @Inject constructor(
     private val getAgentsUseCase: GetAgentsUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<AgentsMenuUiState>(AgentsMenuUiState.Loading)
+    private val _uiState = MutableStateFlow(AgentsMenuUiState())
     val uiState: StateFlow<AgentsMenuUiState> = _uiState.asStateFlow()
 
-    init {
+    fun performAction(action: AgentsMenuViewModelAction) {
+        when (action) {
+            AgentsMenuViewModelAction.StartAction -> start()
+        }
+    }
+
+    private fun start() {
         loadAgents()
     }
 
@@ -28,7 +38,7 @@ class AgentsMenuViewModel @Inject constructor(
             getAgentsUseCase().collect { result ->
                 when (result) {
                     is Result.Loading -> {
-                        _uiState.value = AgentsMenuUiState.Loading
+                        updateRequestUIState(RequestUIState.Loading)
                     }
                     is Result.Success -> {
                         val agents = result.data.map { domainAgent ->
@@ -36,16 +46,25 @@ class AgentsMenuViewModel @Inject constructor(
                                 id = domainAgent.id,
                                 name = domainAgent.name,
                                 description = domainAgent.description,
-                                iconRes = null // TODO: Implementar carregamento de imagem via URL se necessário
+                                iconUrl = null
                             )
                         }
-                        _uiState.value = AgentsMenuUiState.Success(agents)
+                        updateRequestUIState(RequestUIState.Success)
+                        handlesSuccess(agents = agents)
                     }
                     is Result.Error -> {
-                        _uiState.value = AgentsMenuUiState.Error(result.message ?: "Erro desconhecido")
+                        updateRequestUIState(RequestUIState.Error)
                     }
                 }
             }
         }
+    }
+
+    private fun updateRequestUIState(requestUIState: RequestUIState) {
+        _uiState.update { it.copy(requestUIState = requestUIState) }
+    }
+
+    private fun handlesSuccess(agents: List<Agent>) {
+        _uiState.update { it.copy(agents = agents) }
     }
 }

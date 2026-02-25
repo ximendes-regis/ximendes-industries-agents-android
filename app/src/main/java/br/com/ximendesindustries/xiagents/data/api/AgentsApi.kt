@@ -15,8 +15,9 @@ interface AgentsApi {
     @GET("/agents")
     suspend fun getAgents(): List<AgentResponse>
 
-    @POST("/agents/chat/pixel")
+    @POST("/agents/chat/{agentId}")
     suspend fun sendMessage(
+        @Path("agentId") agentId: String,
         @Body request: ChatRequest
     ): ChatResponse
 

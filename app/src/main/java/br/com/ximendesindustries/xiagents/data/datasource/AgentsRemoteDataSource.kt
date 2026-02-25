@@ -18,6 +18,13 @@ class AgentsRemoteDataSource @Inject constructor(
     suspend fun getSessionDetail(sessionId: String): ConversationDetailResponse =
         api.getPixelSessionById(sessionId)
 
-    suspend fun sendMessage(agentId: String, sessionId: String?, message: String): ChatResponse =
-        api.sendMessage(ChatRequest(agentId = agentId, sessionId = sessionId ?: "", message = message))
+    suspend fun sendMessage(
+        agentId: String,
+        sessionId: String?,
+        message: String,
+    ): ChatResponse =
+        api.sendMessage(
+            agentId = agentId,
+            request = ChatRequest(agentId = agentId, sessionId = sessionId ?: "", message = message)
+        )
 }

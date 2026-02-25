@@ -1,7 +1,6 @@
-package br.com.ximendesindustries.xiagents.ui.screen.agentsmenu
+package br.com.ximendesindustries.xiagents.ui.screen.agentsmenu.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,8 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import br.com.ximendesindustries.xiagents.domain.model.Agent
 import br.com.ximendesindustries.xiagents.ui.theme.XiPrimary
-import br.com.ximendesindustries.xiagents.ui.theme.XiSecondary
 
 @Composable
 fun AgentCard(

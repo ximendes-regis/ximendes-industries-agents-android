@@ -1,17 +1,10 @@
 package br.com.ximendesindustries.xiagents.ui.screen.agentsmenu
 
-import androidx.compose.runtime.Immutable
+import br.com.ximendesindustries.xiagents.core.model.RequestUIState
+import br.com.ximendesindustries.xiagents.domain.model.Agent
 
-@Immutable
-data class Agent(
-    val id: String,
-    val name: String,
-    val description: String,
-    val iconRes: Int? = null // Opcional, se tiver ícones drawable
+data class AgentsMenuUiState(
+    val agents: List<Agent> = emptyList(),
+    val requestUIState: RequestUIState = RequestUIState.Loading
 )
 
-sealed interface AgentsMenuUiState {
-    data object Loading : AgentsMenuUiState
-    data class Success(val agents: List<Agent>) : AgentsMenuUiState
-    data class Error(val message: String) : AgentsMenuUiState
-}
