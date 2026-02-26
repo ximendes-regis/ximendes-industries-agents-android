@@ -176,7 +176,7 @@ class AgentChatViewModel @Inject constructor(
             content = content,
             isFromUser = true
         )
-        _uiState.update { it.copy(messages = it.messages + userMsg) }
+        _uiState.update { it.copy(messages = it.messages + userMsg, isSendingMessage = true) }
 
         val sessionIdToSend = _uiState.value.selectedSession?.id
 
@@ -206,7 +206,8 @@ class AgentChatViewModel @Inject constructor(
                                     messages = newMessages,
                                     sessions = listOf(newSession) + it.sessions,
                                     selectedSession = newSession,
-                                    messagesBySession = it.messagesBySession + (sessionId to newMessages)
+                                    messagesBySession = it.messagesBySession + (sessionId to newMessages),
+                                    isSendingMessage = false
                                 )
                             }
                         } else {
@@ -217,7 +218,11 @@ class AgentChatViewModel @Inject constructor(
                                 current.messagesBySession
                             }
                             _uiState.update {
-                                it.copy(messages = newMessages, messagesBySession = newMap)
+                                it.copy(
+                                    messages = newMessages,
+                                    messagesBySession = newMap,
+                                    isSendingMessage = false
+                                )
                             }
                         }
                     }
@@ -227,7 +232,9 @@ class AgentChatViewModel @Inject constructor(
                             content = "Erro ao enviar mensagem: ${result.message}",
                             isFromUser = false
                         )
-                        _uiState.update { it.copy(messages = current.messages + errorMsg) }
+                        _uiState.update {
+                            it.copy(messages = current.messages + errorMsg, isSendingMessage = false)
+                        }
                     }
                     is Result.Loading -> { }
                 }

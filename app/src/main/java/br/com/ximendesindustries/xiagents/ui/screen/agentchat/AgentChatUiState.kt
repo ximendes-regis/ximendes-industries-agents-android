@@ -20,5 +20,6 @@ data class AgentChatUiState(
     val sessions: List<ChatSession> = emptyList(),
     val selectedSession: ChatSession? = null,
     val messagesBySession: Map<String, List<ChatMessage>> = emptyMap(),
-    val isLoadingSessionDetail: Boolean = false
+    val isLoadingSessionDetail: Boolean = false,
+    val isSendingMessage: Boolean = false
 )

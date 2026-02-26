@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -29,7 +30,8 @@ import androidx.compose.ui.unit.dp
 fun ChatInputArea(
     value: String,
     onValueChange: (String) -> Unit,
-    onSendClick: () -> Unit
+    onSendClick: () -> Unit,
+    isLoading: Boolean = false
 ) {
     Row(
         modifier = Modifier
@@ -43,6 +45,7 @@ fun ChatInputArea(
             value = value,
             onValueChange = onValueChange,
             placeholder = { Text("Digite sua mensagem...") },
+            enabled = !isLoading,
             modifier = Modifier
                 .weight(1f)
                 .clip(RoundedCornerShape(24.dp)),
@@ -58,15 +61,24 @@ fun ChatInputArea(
 
         IconButton(
             onClick = onSendClick,
+            enabled = !isLoading,
             modifier = Modifier
                 .size(48.dp)
                 .background(MaterialTheme.colorScheme.primary, CircleShape)
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.Send,
-                contentDescription = "Enviar",
-                tint = MaterialTheme.colorScheme.onPrimary
-            )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "Enviar",
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+            }
         }
     }
 }

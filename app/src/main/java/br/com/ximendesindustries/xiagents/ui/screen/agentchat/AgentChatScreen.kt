@@ -29,7 +29,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -79,10 +78,8 @@ fun AgentChatContent(
         }
     }
 
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-
     Scaffold(
-        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = {
@@ -162,7 +159,10 @@ fun AgentChatContent(
                                 contentPadding = PaddingValues(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                items(uiState.messages) { message ->
+                                items(
+                                    items = uiState.messages,
+                                    key = { it.id }
+                                ) { message ->
                                     ChatMessageItem(message = message)
                                 }
                             }
@@ -176,7 +176,8 @@ fun AgentChatContent(
                                     onSendMessage(messageText)
                                     messageText = ""
                                 }
-                            }
+                            },
+                            isLoading = uiState.isSendingMessage
                         )
                     }
                 }
