@@ -1,6 +1,7 @@
 package br.com.ximendesindustries.xiagents.ui.screen.agentsmenu.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,9 +21,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import br.com.ximendesindustries.xiagents.R
 import br.com.ximendesindustries.xiagents.domain.model.Agent
 import br.com.ximendesindustries.xiagents.ui.theme.XiPrimary
 
@@ -58,11 +62,16 @@ fun AgentCard(
                     .size(48.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
+                val image = when(agent.id) {
+                    "axel" -> R.drawable.axel_bot
+                    "pixel" -> R.drawable.pixel_bot
+                    "lex" -> R.drawable.lex_bot
+                    else -> { R.drawable.x_hat_one}
+                }
+                Image(
+                    painter = painterResource(id = image),
+                    contentDescription = "Bot image",
+                    contentScale = ContentScale.Crop
                 )
             }
 
